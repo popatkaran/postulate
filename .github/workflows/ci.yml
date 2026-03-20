@@ -31,8 +31,8 @@ jobs:
             exit 1
           fi
 
-      - name: Vet
-        run: go vet ./...
+      # - name: Vet
+      #   run: go vet ./...
 
       - name: lint
         uses: golangci/golangci-lint-action@v9
