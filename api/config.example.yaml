@@ -1,0 +1,39 @@
+# config.example.yaml — Postulate API server configuration reference
+#
+# Copy this file to config.yaml and adjust values for your environment.
+# Any value can be overridden by a POSTULATE_* environment variable.
+# Convention: server.port → POSTULATE_SERVER_PORT
+#
+# Required fields are marked with (required).
+# Sensitive fields are marked with (sensitive) — never commit real values.
+
+server:
+  # (required) TCP port the HTTP server listens on. Integer 1–65535.
+  # Override: POSTULATE_SERVER_PORT
+  port: 8080
+
+  # (required) Runtime environment. One of: development | staging | production.
+  # Override: POSTULATE_SERVER_ENVIRONMENT
+  environment: development
+
+  # (required) Seconds to wait for in-flight requests to complete on shutdown.
+  # Must be a positive integer.
+  # Override: POSTULATE_SERVER_SHUTDOWN_TIMEOUT_SECONDS
+  shutdown_timeout_seconds: 30
+
+observability:
+  # (required) Logical service name emitted in all logs, traces, and metrics.
+  # Override: POSTULATE_OBSERVABILITY_SERVICE_ID
+  service_id: postulate-api
+
+  # (optional) Unique identifier for this instance. Populated from hostname if absent.
+  # Override: POSTULATE_OBSERVABILITY_INSTANCE_ID
+  instance_id: ""
+
+  # (optional) OTLP gRPC endpoint for trace and metric export (e.g. localhost:4317).
+  # Override: POSTULATE_OBSERVABILITY_OTLP_ENDPOINT
+  otlp_endpoint: ""
+
+  # (optional) Minimum log level. One of: debug | info | warn | error. Default: info.
+  # Override: POSTULATE_OBSERVABILITY_LOG_LEVEL
+  log_level: info

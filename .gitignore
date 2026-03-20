@@ -1,3 +1,57 @@
-## Base documents for reference.
-docs/base
+# Go build artefacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bin/
+/dist/
 
+# Go module cache
+vendor/
+
+# Go workspace sum (committed separately)
+# go.work.sum is committed
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment and secret files
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Binary outputs
+postulate
+postulate-api
+postulate-cli
+api/api
+cli/cli
+
+# Test coverage
+coverage.out
+coverage.html
+coverage/
+
+# Terraform
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.backup
+infra/**/.terraform.lock.hcl
+
+# OS artefacts
+Thumbs.db
+
+# Base documents (internal reference only)
+docs/base
+docs/prompts

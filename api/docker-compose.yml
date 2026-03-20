@@ -1,0 +1,17 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/etc/postulate/config.yaml:ro
+    environment:
+      POSTULATE_CONFIG_FILE: /etc/postulate/config.yaml
+    healthcheck:
+      test: ["/postulate-api", "-healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

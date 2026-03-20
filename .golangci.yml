@@ -1,0 +1,24 @@
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gocritic
+    - gosec
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+formatters-settings:
+  goimports:
+    local-prefixes:
+      - github.com/postulate
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

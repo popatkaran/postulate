@@ -1,0 +1,7 @@
+.git
+**/*_test.go
+docs/
+infra/
+*.md
+*.local
+config.yaml
