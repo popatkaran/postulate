@@ -117,3 +117,14 @@ The Epic is complete when all of the following are true:
 - CI pipeline passes — lint, test, coverage gate, build, image scan
 - Coverage gate verified by CI — `go test -coverprofile` shows ≥90% per package and in aggregate
 - The running API is reachable and serves health endpoints in the target environment
+
+---
+
+## 9. Change Log
+
+### 2026-03-23 — CI Pipeline Fix
+
+- `golangci-lint-action` upgraded `v6` → `v9` (golangci-lint `v2.11.4`). Previous `v6` used golangci-lint `v1.64.8` which rejected the `version: "2"` config schema in `.golangci.yml`.
+- Go version in CI pinned to `1.26.1`.
+- `api/go.mod` bumped from `go 1.24` → `go 1.26` to align with workspace and all other modules.
+- CI pipeline now unblocked. Coverage gate step is reachable. US-01-11 tasks 1–7 remain open.

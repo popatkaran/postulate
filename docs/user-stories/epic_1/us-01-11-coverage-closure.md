@@ -227,3 +227,20 @@ Epic 01 functional implementation is complete. All ten original stories passed f
 - Epic 01 document updated to include US-01-11
 - CI coverage gate enforced — pipeline fails below 90%
 - PR reviewed and approved by the same reviewer who produced the validation report
+
+---
+
+## 6. Change Log
+
+### 2026-03-23 — CI Pipeline Fix
+
+**Task 8 — CI coverage gate: resolved (partial)**
+
+The CI pipeline was broken due to a toolchain version mismatch:
+
+- `golangci-lint-action` upgraded from `v6` → `v9` (latest), which ships `golangci-lint v2.11.4` (latest as of 2026-03-22). The previous `v6` bundled golangci-lint `v1.64.8`, which does not support the `version: "2"` config schema used in `.golangci.yml` — causing `config verify` to fail with `additional properties 'version', 'formatters' not allowed`.
+- `golangci-lint` version pinned explicitly to `v2.11.4` in the action `with:` block.
+- Go version in CI corrected from `"1.26"` → `"1.26.1"` (latest patch) for reproducible builds.
+- `api/go.mod` bumped from `go 1.24` → `go 1.26` to align with `go.work` and all other workspace modules.
+
+The coverage gate step itself (`go tool cover` threshold check) was already correctly wired in the pipeline. The pipeline now reaches that step without error. Tasks 1–7 (test authoring) remain open.

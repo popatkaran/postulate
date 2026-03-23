@@ -145,3 +145,20 @@ ll hit a mismatch. Worth a one-line decision now.
 
 3. config.LogSafe needs a test before Epic 02 adds DB credentials — right now it's harmless, but once database config lands it becomes a security-relevant function and
 should be covered before that happens.
+
+---
+
+## Post-Validation Fix Log
+
+### 2026-03-23 — CI Pipeline Unblocked
+
+The CI pipeline was failing before any test or coverage results could be produced, due to a toolchain mismatch independent of the coverage gaps identified in this report.
+
+**Root cause:** `golangci-lint-action@v6` bundled golangci-lint `v1.64.8`, which does not support the `version: "2"` / `formatters` keys in `.golangci.yml`. The `config verify` step aborted with `additional properties not allowed`.
+
+**Fix applied:**
+- `golangci-lint-action` upgraded to `v9` with golangci-lint pinned to `v2.11.4` (latest, 2026-03-22).
+- Go version in CI corrected to `1.26.1`.
+- `api/go.mod` bumped from `go 1.24` → `go 1.26`.
+
+The coverage failures documented in this report remain the active work items under US-01-11.
