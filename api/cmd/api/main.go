@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/popatkaran/postulate/api/internal/config"
+	"github.com/popatkaran/postulate/api/internal/database"
 	"github.com/popatkaran/postulate/api/internal/handler"
 	"github.com/popatkaran/postulate/api/internal/health"
 	applogger "github.com/popatkaran/postulate/api/internal/logger"
@@ -58,9 +59,16 @@ func main() {
 	logger := applogger.New(cfg.Observability, cfg.Server.Environment)
 	logger.Info("configuration loaded", "config", config.LogSafe(cfg))
 
-	// Database reachability check — must pass before server accepts requests.
+	// Construct the connection pool — must succeed before server accepts requests.
+	pool, err := database.New(context.Background(), cfg.Database, logger)
+	if err != nil {
+		os.Exit(1)
+	}
+
+	// Database reachability check using the pool.
 	readyHandler := &handler.ReadyHandler{}
-	if err := startup.CheckDatabase(context.Background(), cfg.Database, cfg.Server.Environment, logger); err != nil {
+	if err := startup.CheckDatabase(context.Background(), pool, cfg.Server.Environment, logger); err != nil {
+		pool.Close()
 		os.Exit(1)
 	}
 	readyHandler.SetReady(true)
@@ -108,6 +116,7 @@ func main() {
 		stop()
 		if !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("server exited unexpectedly", "error", err)
+			pool.Close()
 			os.Exit(1)
 		}
 	case <-sigCtx.Done():
@@ -133,6 +142,24 @@ func main() {
 		defer otelCancel()
 		if err := otelShutdown(otelCtx); err != nil {
 			logger.Warn("OTel shutdown error", "error", err)
+		}
+
+		// Close the database connection pool after OTel has flushed.
+		// Use a 10-second timeout to allow in-flight queries to complete.
+		poolCloseCtx, poolCloseCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer poolCloseCancel()
+
+		poolClosed := make(chan struct{})
+		go func() {
+			pool.Close()
+			close(poolClosed)
+		}()
+
+		select {
+		case <-poolClosed:
+			logger.Info("database connection pool closed")
+		case <-poolCloseCtx.Done():
+			logger.Warn("database connection pool close timed out")
 		}
 	}
 }

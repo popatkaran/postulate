@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/popatkaran/postulate/api/internal/config"
+	"github.com/popatkaran/postulate/api/internal/database"
 	"github.com/popatkaran/postulate/api/internal/startup"
 )
 
@@ -24,8 +25,14 @@ func TestCheckDatabase_ReturnsNilWhenDatabaseIsReachable(t *testing.T) {
 		SSLMode:  "disable",
 	}
 
+	pool, err := database.New(context.Background(), cfg, nopLogger)
+	if err != nil {
+		t.Fatalf("pool creation failed: %v", err)
+	}
+	defer pool.Close()
+
 	// Act
-	err := startup.CheckDatabase(context.Background(), cfg, "development", nopLogger)
+	err = startup.CheckDatabase(context.Background(), pool, "development", nopLogger)
 
 	// Assert
 	if err != nil {

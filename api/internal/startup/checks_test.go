@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/popatkaran/postulate/api/internal/config"
-	"github.com/popatkaran/postulate/api/internal/startup"
+	"github.com/popatkaran/postulate/api/internal/database"
 )
 
 var nopLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
@@ -23,8 +23,8 @@ func TestCheckDatabase_ReturnsErrorWhenHostIsUnreachable(t *testing.T) {
 		SSLMode:  "disable",
 	}
 
-	// Act
-	err := startup.CheckDatabase(context.Background(), cfg, "development", nopLogger)
+	// database.New already pings; it will return an error for an unreachable host.
+	_, err := database.New(context.Background(), cfg, nopLogger)
 
 	// Assert
 	if err == nil {
