@@ -31,6 +31,9 @@ vendor/
 *.p12
 *.pfx
 
+# Local development config (contains credentials — never commit)
+api/config.local.yaml
+
 # Binary outputs
 postulate
 postulate-api

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit
+# Runs lint and tests locally before every commit.
+# Install: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+echo "→ lint"
+cd api && golangci-lint run ./... && cd ..
+
+echo "→ test"
+go test -race ./api/... ./cli/... ./sdk/... ./plugins/platform-standards/...
+
+echo "✓ pre-commit checks passed"
