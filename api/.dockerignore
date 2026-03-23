@@ -5,3 +5,4 @@ infra/
 *.md
 *.local
 config.yaml
+config.local.yaml

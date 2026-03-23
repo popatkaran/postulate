@@ -20,6 +20,7 @@ import (
 	applogger "github.com/popatkaran/postulate/api/internal/logger"
 	"github.com/popatkaran/postulate/api/internal/router"
 	"github.com/popatkaran/postulate/api/internal/server"
+	"github.com/popatkaran/postulate/api/internal/startup"
 	"github.com/popatkaran/postulate/api/internal/telemetry"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric/noop"
@@ -57,6 +58,13 @@ func main() {
 	logger := applogger.New(cfg.Observability, cfg.Server.Environment)
 	logger.Info("configuration loaded", "config", config.LogSafe(cfg))
 
+	// Database reachability check — must pass before server accepts requests.
+	readyHandler := &handler.ReadyHandler{}
+	if err := startup.CheckDatabase(context.Background(), cfg.Database, cfg.Server.Environment, logger); err != nil {
+		os.Exit(1)
+	}
+	readyHandler.SetReady(true)
+
 	// OTel SDK — errors are non-fatal; server continues with no-op providers.
 	otelShutdown, err := telemetry.Setup(context.Background(), cfg.Observability)
 	if err != nil {
@@ -75,9 +83,6 @@ func main() {
 	aggregator.Register(&health.ServerContributor{})
 
 	// Handlers.
-	readyHandler := &handler.ReadyHandler{}
-	readyHandler.SetReady(true)
-
 	handlers := router.Handlers{
 		Health:  handler.NewHealthHandler(aggregator),
 		Ready:   readyHandler,

@@ -12,6 +12,13 @@ var validEnvironments = map[string]bool{
 	"production":  true,
 }
 
+// validSSLModes lists the accepted values for database.ssl_mode.
+var validSSLModes = map[string]bool{
+	"disable":      true,
+	"require":      true,
+	"verify-full":  true,
+}
+
 // ValidationErrors is a collection of field-level validation failures.
 // It implements the error interface so all errors are returned together.
 type ValidationErrors []string
@@ -48,8 +55,36 @@ func Validate(cfg *Config) error {
 		errs = append(errs, "observability.service_id: must be a non-empty string")
 	}
 
+	if cfg.Database.Host == "" {
+		errs = append(errs, "database.host: must be a non-empty string")
+	}
+
+	if cfg.Database.Port < 1 || cfg.Database.Port > 65535 {
+		errs = append(errs, fmt.Sprintf("database.port: must be between 1 and 65535 (got %d)", cfg.Database.Port))
+	}
+
+	if cfg.Database.Name == "" {
+		errs = append(errs, "database.name: must be a non-empty string")
+	}
+
+	if cfg.Database.User == "" {
+		errs = append(errs, "database.user: must be a non-empty string")
+	}
+
+	if cfg.Database.Password == "" {
+		errs = append(errs, "database.password: must be a non-empty string")
+	}
+
+	if !validSSLModes[cfg.Database.SSLMode] {
+		errs = append(errs, fmt.Sprintf(
+			"database.ssl_mode: must be one of disable|require|verify-full (got %q)",
+			cfg.Database.SSLMode,
+		))
+	}
+
 	if len(errs) > 0 {
 		return errs
 	}
 	return nil
 }
+

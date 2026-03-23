@@ -19,6 +19,14 @@ func fullConfig() *config.Config {
 			OTLPEndpoint: "otel:4317",
 			LogLevel:     "info",
 		},
+		Database: config.DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			Name:     "postulate_dev",
+			User:     "postulate_dev",
+			Password: "super-secret",
+			SSLMode:  "disable",
+		},
 	}
 }
 
@@ -30,6 +38,12 @@ var expectedKeys = []string{
 	"observability.instance_id",
 	"observability.otlp_endpoint",
 	"observability.log_level",
+	"database.host",
+	"database.port",
+	"database.name",
+	"database.user",
+	"database.password",
+	"database.ssl_mode",
 }
 
 func TestLogSafe_AllKeysPresent(t *testing.T) {
@@ -87,3 +101,34 @@ func TestLogSafe_ServerAndObservabilityTopLevelKeysPresent(t *testing.T) {
 		}
 	}
 }
+
+func TestLogSafe_DatabasePasswordIsRedacted(t *testing.T) {
+	// Arrange
+	cfg := fullConfig()
+	cfg.Database.Password = "super-secret"
+
+	// Act
+	m := config.LogSafe(cfg)
+
+	// Assert
+	if m["database.password"] == cfg.Database.Password {
+		t.Error("database.password must not appear in LogSafe output — expected [redacted]")
+	}
+	if m["database.password"] != "[redacted]" {
+		t.Errorf("database.password: expected [redacted], got %v", m["database.password"])
+	}
+}
+
+func TestLogSafe_DatabaseUserIsNotRedacted(t *testing.T) {
+	// Arrange
+	cfg := fullConfig()
+
+	// Act
+	m := config.LogSafe(cfg)
+
+	// Assert
+	if m["database.user"] != cfg.Database.User {
+		t.Errorf("database.user should not be redacted: expected %v, got %v", cfg.Database.User, m["database.user"])
+	}
+}
+

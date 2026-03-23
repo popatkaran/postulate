@@ -37,3 +37,31 @@ observability:
   # (optional) Minimum log level. One of: debug | info | warn | error. Default: info.
   # Override: POSTULATE_OBSERVABILITY_LOG_LEVEL
   log_level: info
+
+database:
+  # (required) PostgreSQL host.
+  host: localhost
+
+  # (required) PostgreSQL port. Integer 1–65535.
+  port: 5432
+
+  # (required) Database name.
+  name: postulate_dev
+
+  # (required) Database user.
+  user: postulate_dev
+
+  # (required) (sensitive) Database password — never log this value.
+  password: ""
+
+  # (required) SSL mode. One of: disable | require | verify-full.
+  ssl_mode: disable
+
+  # (optional) Maximum number of open connections. Default: 25.
+  max_open_conns: 25
+
+  # (optional) Maximum number of idle connections. Default: 5.
+  max_idle_conns: 5
+
+  # (optional) Maximum connection lifetime in seconds. Default: 300.
+  conn_max_lifetime_seconds: 300

@@ -18,6 +18,14 @@ func validConfig() *config.Config {
 		Observability: config.ObservabilityConfig{
 			ServiceID: "postulate-api",
 		},
+		Database: config.DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			Name:     "postulate_dev",
+			User:     "postulate_dev",
+			Password: "postulate_dev",
+			SSLMode:  "disable",
+		},
 	}
 }
 
@@ -105,7 +113,72 @@ func TestValidate_AllErrorsReturnedTogether(t *testing.T) {
 	}
 }
 
+func TestValidate_ValidDatabaseConfigPassesValidation(t *testing.T) {
+	// Arrange
+	cfg := validConfig()
+
+	// Act
+	err := config.Validate(cfg)
+
+	// Assert
+	if err != nil {
+		t.Fatalf("expected nil error for valid database config, got %v", err)
+	}
+}
+
+func TestValidate_MissingDatabaseHostFailsWithNamedError(t *testing.T) {
+	// Arrange
+	cfg := validConfig()
+	cfg.Database.Host = ""
+
+	// Act
+	err := config.Validate(cfg)
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !containsField(err, "database.host") {
+		t.Errorf("expected error to name database.host, got: %v", err)
+	}
+}
+
+func TestValidate_InvalidSSLModeFailsValidation(t *testing.T) {
+	// Arrange
+	cfg := validConfig()
+	cfg.Database.SSLMode = "invalid-mode"
+
+	// Act
+	err := config.Validate(cfg)
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !containsField(err, "database.ssl_mode") {
+		t.Errorf("expected error to name database.ssl_mode, got: %v", err)
+	}
+}
+
+func TestValidate_MissingDatabasePasswordFailsValidation(t *testing.T) {
+	// Arrange
+	cfg := validConfig()
+	cfg.Database.Password = ""
+
+	// Act
+	err := config.Validate(cfg)
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !containsField(err, "database.password") {
+		t.Errorf("expected error to name database.password, got: %v", err)
+	}
+}
+
 // containsField reports whether the error message references the given field name.
 func containsField(err error, field string) bool {
 	return err != nil && strings.Contains(err.Error(), field)
 }
+

@@ -7,7 +7,13 @@ LDFLAGS   := -X github.com/postulate/api/internal/handler.version=$(VERSION) \
 
 MODULES := ./api/... ./cli/... ./sdk/... ./plugins/platform-standards/...
 
-.PHONY: build run test lint tidy docker-build docker-run docker-scan help
+.PHONY: build run test lint tidy docker-build docker-run docker-scan help \
+        db-setup db-start db-stop db-status db-reset hooks
+
+## hooks: install git hooks from .githooks/
+hooks:
+	git config core.hooksPath .githooks
+	@echo "✓ git hooks installed"
 
 ## build: build all Go modules in the workspace
 build:
@@ -56,4 +62,36 @@ docker-run:
 ## docker-scan: scan postulate-api:local for CRITICAL CVEs using trivy
 docker-scan:
 	trivy image --exit-code 1 --severity CRITICAL postulate-api:local
+
+## db-setup: create local PostgreSQL roles and databases
+db-setup:
+	@bash scripts/db-setup.sh
+	@echo "✓ db-setup complete"
+
+## db-start: start the local PostgreSQL service via Homebrew
+db-start:
+	brew services start postgresql@16
+	@echo "✓ PostgreSQL started"
+
+## db-stop: stop the local PostgreSQL service via Homebrew
+db-stop:
+	brew services stop postgresql@16
+	@echo "✓ PostgreSQL stopped"
+
+## db-status: print the current PostgreSQL service status
+db-status:
+	brew services info postgresql@16
+
+## db-reset: drop and recreate postulate_dev and postulate_test databases (prompts for confirmation)
+db-reset:
+	@read -p "This will DROP postulate_dev and postulate_test. Type 'yes' to confirm: " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		psql postgres -c "DROP DATABASE IF EXISTS postulate_dev;"; \
+		psql postgres -c "DROP DATABASE IF EXISTS postulate_test;"; \
+		psql postgres -c "CREATE DATABASE postulate_dev OWNER postulate_dev;"; \
+		psql postgres -c "CREATE DATABASE postulate_test OWNER postulate_dev;"; \
+		echo "✓ Databases recreated"; \
+	else \
+		echo "Aborted."; \
+	fi
 

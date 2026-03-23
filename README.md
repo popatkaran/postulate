@@ -33,3 +33,7 @@ The platform team updates the generation engine once. Every subsequent generatio
 ## Status
 
 Early development — Phase 1 in progress.
+
+## Getting Started
+
+See [docs/local-setup.md](docs/local-setup.md) for environment setup instructions, including PostgreSQL installation and running the API locally.
