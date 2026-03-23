@@ -13,11 +13,10 @@ formatters:
   enable:
     - gofmt
     - goimports
-
-formatters-settings:
-  goimports:
-    local-prefixes:
-      - github.com/postulate
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/postulate
 
 issues:
   max-issues-per-linter: 0

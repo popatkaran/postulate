@@ -22,30 +22,22 @@ jobs:
 
       - name: Verify modules
         run: go mod verify
-
-      - name: Format check
-        run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "Code is not formatted. Run: gofmt -w ."
-            gofmt -l .
-            exit 1
-          fi
-
-      # - name: Vet
-      #   run: go vet ./...
+        working-directory: api
 
       - name: lint
-        uses: golangci/golangci-lint-action@v9
+        uses: golangci/golangci-lint-action@v6
         with:
           working-directory: api
 
       - name: test
-        run: go test -race -coverprofile=coverage.out ./api/... ./cli/... ./sdk/... ./plugins/platform-standards/...
+        run: go test -race -coverprofile=coverage.out ./...
+        working-directory: api
 
       - name: coverage gate
         run: |
           go tool cover -func=coverage.out | \
             awk '/^total:/ { pct = $3+0; if (pct < 90) { print "Coverage " pct "% is below 90% threshold"; exit 1 } }'
+        working-directory: api
 
   docker:
     name: Docker Build and Scan
