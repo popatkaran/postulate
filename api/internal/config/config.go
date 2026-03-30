@@ -35,4 +35,3 @@ type DatabaseConfig struct {
 	MaxIdleConns           int    `yaml:"max_idle_conns"`
 	ConnMaxLifetimeSeconds int    `yaml:"conn_max_lifetime_seconds"`
 }
-

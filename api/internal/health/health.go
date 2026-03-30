@@ -16,8 +16,9 @@ const (
 
 // CheckResult is the result returned by a single Contributor.
 type CheckResult struct {
-	Status  Status `json:"status"`
-	Message string `json:"message"`
+	Status     Status         `json:"status"`
+	Message    string         `json:"message"`
+	Extensions map[string]any `json:"extensions,omitempty"`
 }
 
 // Contributor is implemented by any component that can report its health.

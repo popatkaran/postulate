@@ -131,4 +131,3 @@ func TestLogSafe_DatabaseUserIsNotRedacted(t *testing.T) {
 		t.Errorf("database.user should not be redacted: expected %v, got %v", cfg.Database.User, m["database.user"])
 	}
 }
-

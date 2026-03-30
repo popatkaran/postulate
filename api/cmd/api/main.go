@@ -19,6 +19,7 @@ import (
 	"github.com/popatkaran/postulate/api/internal/handler"
 	"github.com/popatkaran/postulate/api/internal/health"
 	applogger "github.com/popatkaran/postulate/api/internal/logger"
+	apimigrate "github.com/popatkaran/postulate/api/internal/migrate"
 	"github.com/popatkaran/postulate/api/internal/router"
 	"github.com/popatkaran/postulate/api/internal/server"
 	"github.com/popatkaran/postulate/api/internal/startup"
@@ -71,6 +72,12 @@ func main() {
 		pool.Close()
 		os.Exit(1)
 	}
+
+	// Run pending migrations before accepting requests.
+	if err := apimigrate.Run(context.Background(), pool, logger); err != nil {
+		pool.Close()
+		os.Exit(1)
+	}
 	readyHandler.SetReady(true)
 
 	// OTel SDK — errors are non-fatal; server continues with no-op providers.
@@ -89,6 +96,7 @@ func main() {
 	// Health aggregator.
 	aggregator := &health.Aggregator{}
 	aggregator.Register(&health.ServerContributor{})
+	aggregator.Register(health.NewDatabaseContributor(pool))
 
 	// Handlers.
 	handlers := router.Handlers{

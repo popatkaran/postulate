@@ -181,4 +181,3 @@ func TestValidate_MissingDatabasePasswordFailsValidation(t *testing.T) {
 func containsField(err error, field string) bool {
 	return err != nil && strings.Contains(err.Error(), field)
 }
-

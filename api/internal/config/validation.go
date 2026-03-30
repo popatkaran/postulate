@@ -14,9 +14,9 @@ var validEnvironments = map[string]bool{
 
 // validSSLModes lists the accepted values for database.ssl_mode.
 var validSSLModes = map[string]bool{
-	"disable":      true,
-	"require":      true,
-	"verify-full":  true,
+	"disable":     true,
+	"require":     true,
+	"verify-full": true,
 }
 
 // ValidationErrors is a collection of field-level validation failures.
@@ -87,4 +87,3 @@ func Validate(cfg *Config) error {
 	}
 	return nil
 }
-

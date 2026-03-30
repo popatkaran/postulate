@@ -5,13 +5,17 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// Pinger is the minimal interface CheckDatabase needs from the pool.
+// *pgxpool.Pool and database.Pool both satisfy this interface.
+type Pinger interface {
+	Ping(ctx context.Context) error
+}
 
 // CheckDatabase pings the provided pool to verify the database is reachable.
 // On failure it logs a structured error and returns a non-nil error.
-func CheckDatabase(ctx context.Context, pool *pgxpool.Pool, env string, logger *slog.Logger) error {
+func CheckDatabase(ctx context.Context, pool Pinger, env string, logger *slog.Logger) error {
 	if err := pool.Ping(ctx); err != nil {
 		args := []any{"error", err}
 		if env == "development" {

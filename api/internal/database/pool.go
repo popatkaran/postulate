@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/popatkaran/postulate/api/internal/config"
 )
@@ -14,14 +16,16 @@ import (
 // Pool is the interface the application uses for database access.
 // It exposes only the operations required by the application, preventing
 // pgxpool internals from leaking into business logic packages.
+// *pgxpool.Pool satisfies this interface.
 type Pool interface {
 	Acquire(ctx context.Context) (*pgxpool.Conn, error)
-	Exec(ctx context.Context, sql string, arguments ...any) (interface{}, error)
-	Query(ctx context.Context, sql string, args ...any) (interface{}, error)
-	QueryRow(ctx context.Context, sql string, args ...any) interface{}
-	BeginTx(ctx context.Context, txOptions interface{}) (interface{}, error)
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	BeginTx(ctx context.Context, txOptions pgx.TxOptions) (pgx.Tx, error)
 	Ping(ctx context.Context) error
 	Stat() *pgxpool.Stat
+	Config() *pgxpool.Config
 	Close()
 }
 
@@ -34,10 +38,10 @@ func BuildDSN(cfg config.DatabaseConfig) string {
 	)
 }
 
-// New creates and validates a pgxpool connection pool from the given config.
-// It pings the database to confirm reachability before returning.
-// On failure it logs a structured error (without the password) and returns an error.
-func New(ctx context.Context, cfg config.DatabaseConfig, logger *slog.Logger) (*pgxpool.Pool, error) {
+// buildPoolConfig constructs a pgxpool.Config from the given DatabaseConfig,
+// applying defaults for zero-value pool size and lifetime settings.
+// Exported for unit testing.
+func buildPoolConfig(cfg config.DatabaseConfig) (*pgxpool.Config, error) {
 	poolCfg, err := pgxpool.ParseConfig(BuildDSN(cfg))
 	if err != nil {
 		return nil, fmt.Errorf("invalid database config: %w", err)
@@ -60,6 +64,18 @@ func New(ctx context.Context, cfg config.DatabaseConfig, logger *slog.Logger) (*
 	poolCfg.MinConns = int32(minConns)
 	poolCfg.MaxConnLifetime = time.Duration(lifetime) * time.Second
 
+	return poolCfg, nil
+}
+
+// New creates and validates a pgxpool connection pool from the given config.
+// It pings the database to confirm reachability before returning.
+// On failure it logs a structured error (without the password) and returns an error.
+func New(ctx context.Context, cfg config.DatabaseConfig, logger *slog.Logger) (Pool, error) {
+	poolCfg, err := buildPoolConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
 		logger.Error("failed to create database connection pool",
@@ -75,7 +91,7 @@ func New(ctx context.Context, cfg config.DatabaseConfig, logger *slog.Logger) (*
 	}
 
 	logger.Info("database connection pool established",
-		"max_conns", maxConns, "host", cfg.Host, "name", cfg.Name)
+		"max_conns", poolCfg.MaxConns, "host", cfg.Host, "name", cfg.Name)
 
 	return pool, nil
 }

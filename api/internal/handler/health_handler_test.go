@@ -140,3 +140,51 @@ func TestLiveHandler_AlwaysReturns200(t *testing.T) {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}
 }
+
+// contributorWithExtensions is a test double that returns a CheckResult with Extensions.
+type contributorWithExtensions struct{}
+
+func (c *contributorWithExtensions) Name() string { return "extended" }
+func (c *contributorWithExtensions) Check(_ context.Context) health.CheckResult {
+	return health.CheckResult{
+		Status:     health.StatusHealthy,
+		Extensions: map[string]any{"key": "value"},
+	}
+}
+
+func TestHealthHandler_ExtensionsIncludedWhenNonNil(t *testing.T) {
+	a := &health.Aggregator{}
+	a.Register(&contributorWithExtensions{})
+	h := handler.NewHealthHandler(a)
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	var body map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	checks := body["checks"].(map[string]any)
+	extended := checks["extended"].(map[string]any)
+	if extended["extensions"] == nil {
+		t.Error("expected 'extensions' field to be present")
+	}
+}
+
+func TestHealthHandler_ExtensionsOmittedWhenNil(t *testing.T) {
+	h := handler.NewHealthHandler(newHealthyAggregator())
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	var body map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	checks := body["checks"].(map[string]any)
+	server := checks["server"].(map[string]any)
+	if _, exists := server["extensions"]; exists {
+		t.Error("expected 'extensions' field to be absent when nil")
+	}
+}

@@ -40,6 +40,57 @@ jobs:
             awk '/^total:/ { pct = $3+0; if (pct < 90) { print "Coverage " pct "% is below 90% threshold"; exit 1 } }'
         working-directory: api
 
+      - name: migration file lint
+        run: |
+          for up in api/internal/migrate/migrations/*.up.sql; do
+            down="${up%.up.sql}.down.sql"
+            if [ ! -f "$down" ]; then
+              echo "Missing down migration for: $up"
+              exit 1
+            fi
+          done
+          echo "✓ All migration files have matching up/down pairs"
+
+  migrate:
+    name: Migration Check
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postulate_dev
+          POSTGRES_PASSWORD: postulate_dev
+          POSTGRES_DB: postulate_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.1"
+
+      - name: Install golang-migrate CLI
+        run: make install-tools
+
+      - name: migrate-up (first run)
+        run: make migrate-up DB_URL="postgres://postulate_dev:postulate_dev@localhost:5432/postulate_test?sslmode=disable"
+
+      - name: migrate-up (idempotency check)
+        run: make migrate-up DB_URL="postgres://postulate_dev:postulate_dev@localhost:5432/postulate_test?sslmode=disable"
+
+      - name: migrate-down-all
+        run: migrate -path api/internal/migrate/migrations -database "postgres://postulate_dev:postulate_dev@localhost:5432/postulate_test?sslmode=disable" down -all
+
   docker:
     name: Docker Build and Scan
     runs-on: ubuntu-latest

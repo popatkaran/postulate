@@ -7,8 +7,16 @@ LDFLAGS   := -X github.com/postulate/api/internal/handler.version=$(VERSION) \
 
 MODULES := ./api/... ./cli/... ./sdk/... ./plugins/platform-standards/...
 
+# Default database URL for local development. Override with DB_URL=<url>.
+DB_URL ?= postgres://postulate_dev:postulate_dev@localhost:5432/postulate_dev?sslmode=disable
+
+# Path to migration files (relative to repo root).
+MIGRATIONS_PATH := api/internal/migrate/migrations
+
 .PHONY: build run test lint tidy docker-build docker-run docker-scan help \
-        db-setup db-start db-stop db-status db-reset hooks
+        db-setup db-start db-stop db-status db-reset hooks \
+        migrate-up migrate-down migrate-down-all migrate-status migrate-create migrate-version \
+        install-tools
 
 ## hooks: install git hooks from .githooks/
 hooks:
@@ -94,4 +102,42 @@ db-reset:
 	else \
 		echo "Aborted."; \
 	fi
+
+## install-tools: install developer tools (golang-migrate CLI)
+install-tools:
+	go install -tags 'pgx5' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	@echo "✓ tools installed"
+
+## migrate-up: apply all pending migrations to postulate_dev (override with DB_URL=<url>)
+migrate-up:
+	migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" up
+
+## migrate-down: roll back the most recent migration
+migrate-down:
+	migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" down 1
+
+## migrate-down-all: roll back all applied migrations (prompts for confirmation)
+migrate-down-all:
+	@read -p "This will roll back ALL migrations. Type 'yes' to confirm: " confirm; \
+	if [ "$$confirm" = "yes" ]; then \
+		migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" down -all; \
+	else \
+		echo "Aborted."; \
+	fi
+
+## migrate-status: show applied and pending migration status
+migrate-status:
+	migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" status
+
+## migrate-version: print the current schema version
+migrate-version:
+	migrate -path $(MIGRATIONS_PATH) -database "$(DB_URL)" version
+
+## migrate-create name=<description>: create a new numbered migration file pair
+migrate-create:
+	@if [ -z "$(name)" ]; then \
+		echo "Usage: make migrate-create name=<description>"; \
+		exit 1; \
+	fi
+	migrate create -ext sql -dir $(MIGRATIONS_PATH) -seq $(name)
 
