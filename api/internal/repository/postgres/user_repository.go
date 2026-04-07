@@ -66,3 +66,12 @@ func (r *UserRepo) SoftDelete(ctx context.Context, id uuid.UUID) error {
 	)
 	return mapErr(err)
 }
+
+// CountAll returns the total number of rows in the users table.
+// This is used only by the bootstrap logic to detect a fresh installation.
+// The query runs within any active transaction in ctx.
+func (r *UserRepo) CountAll(ctx context.Context) (int64, error) {
+	var n int64
+	err := querier(ctx, r.pool).QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&n)
+	return n, mapErr(err)
+}

@@ -27,7 +27,7 @@ func newTestRouter() http.Handler {
 		Live:    &handler.LiveHandler{},
 		Version: handler.NewVersionHandler(handler.DefaultBuildInfo(), "test"),
 	}
-	return router.New(slog.New(slog.NewTextHandler(os.Stderr, nil)), nil, h)
+	return router.New(slog.New(slog.NewTextHandler(os.Stderr, nil)), nil, []byte("test-jwt-secret-that-is-32-bytes!"), h)
 }
 
 func TestUnregisteredRoute_Returns404ProblemJSON(t *testing.T) {

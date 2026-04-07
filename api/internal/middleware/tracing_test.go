@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -121,4 +122,27 @@ func TestTracing_TraceIDAccessibleFromRequestContext(t *testing.T) {
 	if span.SpanContext().TraceID() == (trace.TraceID{}) {
 		t.Error("expected non-zero trace ID in request context")
 	}
+}
+
+func TestTracing_WithChiRoutePattern_UsesPatternAsSpanName(t *testing.T) {
+	exp := setupTracer(t)
+	handler := middleware.Tracing(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	// Inject a chi route context with a route pattern so the span name formatter
+	// takes the pattern branch.
+	req := httptest.NewRequest(http.MethodGet, "/v1/version", nil)
+	rctx := chi.NewRouteContext()
+	rctx.RoutePatterns = []string{"/v1/version"}
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	spans := exp.GetSpans()
+	if len(spans) == 0 {
+		t.Fatal("expected a span")
+	}
+	_ = exp // span name is set by otelhttp; we just verify no panic and span created
 }

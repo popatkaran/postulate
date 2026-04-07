@@ -26,6 +26,13 @@ func validConfig() *config.Config {
 			Password: "postulate_dev",
 			SSLMode:  "disable",
 		},
+		Auth: config.AuthConfig{
+			GoogleClientID:     "test-google-client-id",
+			GoogleClientSecret: "test-google-client-secret",
+			GitHubClientID:     "test-github-client-id",
+			GitHubClientSecret: "test-github-client-secret",
+			JWTSecret:          "a-test-jwt-secret-that-is-32-bytes!",
+		},
 	}
 }
 
@@ -180,4 +187,64 @@ func TestValidate_MissingDatabasePasswordFailsValidation(t *testing.T) {
 // containsField reports whether the error message references the given field name.
 func containsField(err error, field string) bool {
 	return err != nil && strings.Contains(err.Error(), field)
+}
+
+func TestValidate_MissingGoogleClientIDFailsValidation(t *testing.T) {
+	cfg := validConfig()
+	cfg.Auth.GoogleClientID = ""
+	err := config.Validate(cfg)
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !containsField(err, "auth.google_client_id") {
+		t.Errorf("expected error to name auth.google_client_id, got: %v", err)
+	}
+}
+
+func TestValidate_MissingGoogleClientSecretFailsValidation(t *testing.T) {
+	cfg := validConfig()
+	cfg.Auth.GoogleClientSecret = ""
+	err := config.Validate(cfg)
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !containsField(err, "auth.google_client_secret") {
+		t.Errorf("expected error to name auth.google_client_secret, got: %v", err)
+	}
+}
+
+func TestValidate_ShortJWTSecretFailsValidation(t *testing.T) {
+	cfg := validConfig()
+	cfg.Auth.JWTSecret = "tooshort"
+	err := config.Validate(cfg)
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !containsField(err, "auth.jwt_secret") {
+		t.Errorf("expected error to name auth.jwt_secret, got: %v", err)
+	}
+}
+
+func TestValidate_MissingGitHubClientIDFailsValidation(t *testing.T) {
+	cfg := validConfig()
+	cfg.Auth.GitHubClientID = ""
+	err := config.Validate(cfg)
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !containsField(err, "auth.github_client_id") {
+		t.Errorf("expected error to name auth.github_client_id, got: %v", err)
+	}
+}
+
+func TestValidate_MissingGitHubClientSecretFailsValidation(t *testing.T) {
+	cfg := validConfig()
+	cfg.Auth.GitHubClientSecret = ""
+	err := config.Validate(cfg)
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !containsField(err, "auth.github_client_secret") {
+		t.Errorf("expected error to name auth.github_client_secret, got: %v", err)
+	}
 }

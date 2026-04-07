@@ -5,6 +5,8 @@ package config
 // in the unit tests in redact_test.go.
 // Sensitive fields:
 //   - database.password — never logged; appears as [redacted]
+//   - auth.google_client_secret — never logged; appears as [redacted]
+//   - auth.jwt_secret — never logged; appears as [redacted]
 func LogSafe(cfg *Config) map[string]any {
 	return map[string]any{
 		"server.port":                     cfg.Server.Port,
@@ -20,5 +22,11 @@ func LogSafe(cfg *Config) map[string]any {
 		"database.user":                   cfg.Database.User,
 		"database.password":               "[redacted]",
 		"database.ssl_mode":               cfg.Database.SSLMode,
+		"auth.google_client_id":           cfg.Auth.GoogleClientID,
+		"auth.google_client_secret":       "[redacted]",
+		"auth.github_client_id":           cfg.Auth.GitHubClientID,
+		"auth.github_client_secret":       "[redacted]",
+		"auth.base_url":                   cfg.Auth.BaseURL,
+		"auth.jwt_secret":                 "[redacted]",
 	}
 }

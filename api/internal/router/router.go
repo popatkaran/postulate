@@ -18,11 +18,13 @@ type Handlers struct {
 	Ready   *handler.ReadyHandler
 	Live    *handler.LiveHandler
 	Version *handler.VersionHandler
+	OAuth   *handler.OAuthHandler
+	Token   *handler.TokenHandler
 }
 
 // New constructs and returns a configured chi.Router.
 // Middleware order: Tracing → RequestID → AccessLog (with metrics).
-func New(logger *slog.Logger, metrics *telemetry.Metrics, h Handlers) chi.Router {
+func New(logger *slog.Logger, metrics *telemetry.Metrics, jwtSecret []byte, h Handlers) chi.Router {
 	r := chi.NewRouter()
 
 	// Tracing must be first so the span context is available to all downstream middleware.
@@ -45,12 +47,30 @@ func New(logger *slog.Logger, metrics *telemetry.Metrics, h Handlers) chi.Router
 	// Authentication endpoints — unauthenticated.
 	r.Route("/v1/auth", func(r chi.Router) {
 		r.MethodNotAllowed(methodNotAllowed)
+		if h.OAuth != nil {
+			r.Get("/oauth/google", h.OAuth.BeginGoogle)
+			r.Get("/oauth/google/callback", h.OAuth.CallbackGoogle)
+			r.Get("/oauth/github", h.OAuth.BeginGitHub)
+			r.Get("/oauth/github/callback", h.OAuth.CallbackGitHub)
+		}
+		if h.Token != nil {
+			r.Post("/token/refresh", h.Token.Refresh)
+		}
 	})
 
-	// Versioned API endpoints — authenticated (middleware added in later stories).
+	// Versioned API endpoints — authenticated.
 	r.Route("/v1", func(r chi.Router) {
 		r.MethodNotAllowed(methodNotAllowed)
 		r.Get("/version", h.Version.ServeHTTP)
+
+		// All routes below require a valid JWT.
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.AuthRequired(jwtSecret))
+			if h.Token != nil {
+				r.Delete("/auth/token", h.Token.Revoke)
+			}
+			// Authenticated routes registered here in subsequent stories.
+		})
 	})
 
 	logger.Info("router initialised")

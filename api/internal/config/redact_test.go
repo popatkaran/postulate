@@ -27,6 +27,13 @@ func fullConfig() *config.Config {
 			Password: "super-secret",
 			SSLMode:  "disable",
 		},
+		Auth: config.AuthConfig{
+			GoogleClientID:     "test-google-client-id",
+			GoogleClientSecret: "test-google-client-secret",
+			GitHubClientID:     "test-github-client-id",
+			GitHubClientSecret: "test-github-client-secret",
+			JWTSecret:          "a-test-jwt-secret-that-is-32-bytes!",
+		},
 	}
 }
 
@@ -44,6 +51,12 @@ var expectedKeys = []string{
 	"database.user",
 	"database.password",
 	"database.ssl_mode",
+	"auth.google_client_id",
+	"auth.google_client_secret",
+	"auth.github_client_id",
+	"auth.github_client_secret",
+	"auth.base_url",
+	"auth.jwt_secret",
 }
 
 func TestLogSafe_AllKeysPresent(t *testing.T) {
@@ -129,5 +142,41 @@ func TestLogSafe_DatabaseUserIsNotRedacted(t *testing.T) {
 	// Assert
 	if m["database.user"] != cfg.Database.User {
 		t.Errorf("database.user should not be redacted: expected %v, got %v", cfg.Database.User, m["database.user"])
+	}
+}
+
+func TestLogSafe_AuthSecretsAreRedacted(t *testing.T) {
+	cfg := fullConfig()
+	m := config.LogSafe(cfg)
+
+	if m["auth.google_client_secret"] != "[redacted]" {
+		t.Errorf("auth.google_client_secret must be [redacted], got %v", m["auth.google_client_secret"])
+	}
+	if m["auth.jwt_secret"] != "[redacted]" {
+		t.Errorf("auth.jwt_secret must be [redacted], got %v", m["auth.jwt_secret"])
+	}
+}
+
+func TestLogSafe_GoogleClientIDIsNotRedacted(t *testing.T) {
+	cfg := fullConfig()
+	m := config.LogSafe(cfg)
+	if m["auth.google_client_id"] != cfg.Auth.GoogleClientID {
+		t.Errorf("auth.google_client_id should not be redacted: expected %v, got %v", cfg.Auth.GoogleClientID, m["auth.google_client_id"])
+	}
+}
+
+func TestLogSafe_GitHubClientSecretIsRedacted(t *testing.T) {
+	cfg := fullConfig()
+	m := config.LogSafe(cfg)
+	if m["auth.github_client_secret"] != "[redacted]" {
+		t.Errorf("auth.github_client_secret must be [redacted], got %v", m["auth.github_client_secret"])
+	}
+}
+
+func TestLogSafe_GitHubClientIDIsNotRedacted(t *testing.T) {
+	cfg := fullConfig()
+	m := config.LogSafe(cfg)
+	if m["auth.github_client_id"] != cfg.Auth.GitHubClientID {
+		t.Errorf("auth.github_client_id should not be redacted: expected %v, got %v", cfg.Auth.GitHubClientID, m["auth.github_client_id"])
 	}
 }

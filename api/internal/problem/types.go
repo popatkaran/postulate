@@ -4,10 +4,14 @@ const baseURI = "https://postulate.dev"
 
 // Error type URI constants.
 const (
-	TypeNotFound            = baseURI + "/errors/not-found"
-	TypeMethodNotAllowed    = baseURI + "/errors/method-not-allowed"
-	TypeValidationFailed    = baseURI + "/errors/validation-failed"
-	TypeInternalServerError = baseURI + "/errors/internal-server-error"
+	TypeNotFound              = baseURI + "/errors/not-found"
+	TypeMethodNotAllowed      = baseURI + "/errors/method-not-allowed"
+	TypeValidationFailed      = baseURI + "/errors/validation-failed"
+	TypeInternalServerError   = baseURI + "/errors/internal-server-error"
+	TypeBadRequest            = baseURI + "/errors/bad-request"
+	TypeUnauthorized          = baseURI + "/errors/unauthorized"
+	TypeForbidden             = baseURI + "/errors/forbidden"
+	TypeUnprocessableEntity   = baseURI + "/errors/unprocessable-entity"
 )
 
 // New constructs a Problem with the given fields.

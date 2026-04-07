@@ -6,6 +6,23 @@ type Config struct {
 	Server        ServerConfig        `yaml:"server"`
 	Observability ObservabilityConfig `yaml:"observability"`
 	Database      DatabaseConfig      `yaml:"database"`
+	Auth          AuthConfig          `yaml:"auth"`
+}
+
+// AuthConfig holds OAuth provider and JWT configuration.
+type AuthConfig struct {
+	GoogleClientID     string `yaml:"google_client_id"`
+	GoogleClientSecret string `yaml:"google_client_secret"`
+	GitHubClientID     string `yaml:"github_client_id"`
+	GitHubClientSecret string `yaml:"github_client_secret"`
+	// BaseURL is the public base URL of this API, used to construct OAuth callback URLs.
+	// Defaults to http://localhost:8080 in development.
+	BaseURL   string `yaml:"base_url"`
+	JWTSecret string `yaml:"jwt_secret"`
+	// BootstrapAdminEmail designates the email address that receives platform_admin on
+	// first login. Optional — startup must not fail if absent.
+	// In production, if absent, a WARN is emitted and the dev fallback is disabled.
+	BootstrapAdminEmail string `yaml:"bootstrap_admin_email"`
 }
 
 // ServerConfig holds HTTP server configuration.

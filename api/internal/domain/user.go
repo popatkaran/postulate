@@ -15,9 +15,8 @@ type UserRole string
 type UserStatus string
 
 const (
-	RoleMember        UserRole = "member"
-	RoleAdmin         UserRole = "admin"
-	RolePlatformAdmin UserRole = "platform_admin"
+	RolePlatformMember UserRole = "platform_member"
+	RolePlatformAdmin  UserRole = "platform_admin"
 )
 
 const (
@@ -27,11 +26,13 @@ const (
 )
 
 // User is the core identity entity.
+// PasswordHash is nil for OAuth-only users; the column is retained for future
+// email/password support but is not required.
 type User struct {
 	ID            uuid.UUID
 	Email         string
 	EmailVerified bool
-	PasswordHash  string
+	PasswordHash  *string
 	FullName      string
 	Role          UserRole
 	Status        UserStatus

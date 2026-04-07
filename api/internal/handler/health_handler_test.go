@@ -188,3 +188,25 @@ func TestHealthHandler_ExtensionsOmittedWhenNil(t *testing.T) {
 		t.Error("expected 'extensions' field to be absent when nil")
 	}
 }
+
+func TestReadyHandler_SetNotReady_Returns503(t *testing.T) {
+	h := &handler.ReadyHandler{}
+	h.SetReady(true)
+	h.SetNotReady()
+
+	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Errorf("expected 503 after SetNotReady, got %d", rec.Code)
+	}
+}
+
+func TestDefaultBuildInfo_ReturnsNonEmptyValues(t *testing.T) {
+	bi := handler.DefaultBuildInfo()
+	// DefaultBuildInfo returns compile-time defaults; values must be non-empty strings.
+	if bi.Version == "" {
+		t.Error("expected non-empty Version from DefaultBuildInfo")
+	}
+}

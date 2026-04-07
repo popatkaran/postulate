@@ -40,11 +40,12 @@ func integrationPool(t *testing.T) *pgxpool.Pool {
 }
 
 func newUser(email string) *domain.User {
+	hash := "hash"
 	return &domain.User{
 		Email:        email,
-		PasswordHash: "hash",
+		PasswordHash: &hash,
 		FullName:     "Test User",
-		Role:         domain.RoleMember,
+		Role:         domain.RolePlatformMember,
 		Status:       domain.StatusActive,
 	}
 }

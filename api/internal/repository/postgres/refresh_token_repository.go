@@ -47,6 +47,12 @@ func (r *RefreshTokenRepo) DeleteBySessionID(ctx context.Context, sessionID uuid
 	return mapErr(err)
 }
 
+func (r *RefreshTokenRepo) DeleteByUserID(ctx context.Context, userID uuid.UUID) error {
+	_, err := querier(ctx, r.pool).Exec(ctx,
+		`DELETE FROM refresh_tokens WHERE user_id=$1`, userID)
+	return mapErr(err)
+}
+
 func (r *RefreshTokenRepo) DeleteExpired(ctx context.Context, before time.Time) (int64, error) {
 	tag, err := querier(ctx, r.pool).Exec(ctx,
 		`DELETE FROM refresh_tokens WHERE expires_at < $1`, before)

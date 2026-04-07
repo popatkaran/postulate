@@ -82,6 +82,25 @@ func Validate(cfg *Config) error {
 		))
 	}
 
+	if cfg.Auth.GoogleClientID == "" {
+		errs = append(errs, "auth.google_client_id: must be a non-empty string (set GOOGLE_CLIENT_ID)")
+	}
+	if cfg.Auth.GoogleClientSecret == "" {
+		errs = append(errs, "auth.google_client_secret: must be a non-empty string (set GOOGLE_CLIENT_SECRET)")
+	}
+	if cfg.Auth.GitHubClientID == "" {
+		errs = append(errs, "auth.github_client_id: must be a non-empty string (set GITHUB_CLIENT_ID)")
+	}
+	if cfg.Auth.GitHubClientSecret == "" {
+		errs = append(errs, "auth.github_client_secret: must be a non-empty string (set GITHUB_CLIENT_SECRET)")
+	}
+	if len(cfg.Auth.JWTSecret) < 32 {
+		errs = append(errs, fmt.Sprintf(
+			"auth.jwt_secret: must be at least 32 bytes (got %d) (set POSTULATE_JWT_SECRET)",
+			len(cfg.Auth.JWTSecret),
+		))
+	}
+
 	if len(errs) > 0 {
 		return errs
 	}

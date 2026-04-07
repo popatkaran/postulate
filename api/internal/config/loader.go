@@ -70,6 +70,13 @@ func applyEnvOverrides(cfg *Config) {
 	setString(&cfg.Observability.InstanceID, "POSTULATE_OBSERVABILITY_INSTANCE_ID")
 	setString(&cfg.Observability.OTLPEndpoint, "POSTULATE_OBSERVABILITY_OTLP_ENDPOINT")
 	setString(&cfg.Observability.LogLevel, "POSTULATE_OBSERVABILITY_LOG_LEVEL")
+	setString(&cfg.Auth.GoogleClientID, "GOOGLE_CLIENT_ID")
+	setString(&cfg.Auth.GoogleClientSecret, "GOOGLE_CLIENT_SECRET")
+	setString(&cfg.Auth.GitHubClientID, "GITHUB_CLIENT_ID")
+	setString(&cfg.Auth.GitHubClientSecret, "GITHUB_CLIENT_SECRET")
+	setString(&cfg.Auth.BaseURL, "POSTULATE_BASE_URL")
+	setString(&cfg.Auth.JWTSecret, "POSTULATE_JWT_SECRET")
+	setString(&cfg.Auth.BootstrapAdminEmail, "POSTULATE_BOOTSTRAP_ADMIN_EMAIL")
 }
 
 func setString(field *string, key string) {

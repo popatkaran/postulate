@@ -131,3 +131,21 @@ func TestRefreshTokenRepo_DeleteExpired(t *testing.T) {
 		t.Errorf("expected 5 deleted, got %d", n)
 	}
 }
+
+func TestRefreshTokenRepo_DeleteByUserID(t *testing.T) {
+	mock := newMock(t)
+	defer mock.Close()
+
+	userID := uuid.New()
+	mock.ExpectExec(`DELETE FROM refresh_tokens WHERE user_id`).
+		WithArgs(userID).
+		WillReturnResult(pgxmock.NewResult("DELETE", 3))
+
+	repo := postgres.NewRefreshTokenRepo(mock)
+	if err := repo.DeleteByUserID(context.Background(), userID); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("unmet expectations: %v", err)
+	}
+}

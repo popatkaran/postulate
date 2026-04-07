@@ -17,4 +17,7 @@ type UserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*domain.User, error)
 	Update(ctx context.Context, user *domain.User) error
 	SoftDelete(ctx context.Context, id uuid.UUID) error
+	// CountAll returns the total number of user rows (including soft-deleted).
+	// Used exclusively by the bootstrap logic to detect a fresh installation.
+	CountAll(ctx context.Context) (int64, error)
 }

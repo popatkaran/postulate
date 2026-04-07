@@ -37,7 +37,7 @@ func TestSchema_TablesExist(t *testing.T) {
 	pool := schemaPool(t)
 	defer pool.Close()
 
-	for _, table := range []string{"users", "sessions", "refresh_tokens"} {
+	for _, table := range []string{"users", "sessions", "refresh_tokens", "oauth_accounts"} {
 		var exists bool
 		err := pool.QueryRow(context.Background(),
 			"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = $1 AND table_schema = 'public')",
@@ -85,6 +85,7 @@ func TestSchema_IndexesExist(t *testing.T) {
 		"idx_sessions_user_id", "idx_sessions_token_hash", "idx_sessions_expires_at",
 		"idx_refresh_tokens_session_id", "idx_refresh_tokens_user_id",
 		"idx_refresh_tokens_token_hash", "idx_refresh_tokens_expires_at",
+		"idx_oauth_accounts_user_id",
 	}
 	for _, idx := range indexes {
 		var exists bool
@@ -214,6 +215,86 @@ func TestSchema_RefreshTokensForeignKeyConstraint(t *testing.T) {
 		"fk-refresh-hash",
 	)
 	assertPgError(t, err, "23503", "expected FK violation on refresh_tokens.session_id")
+}
+
+func TestSchema_OAuthAccountsColumns(t *testing.T) {
+	pool := schemaPool(t)
+	defer pool.Close()
+
+	expected := []string{"id", "user_id", "provider", "provider_uid", "email",
+		"access_token", "refresh_token", "token_expiry", "created_at", "updated_at"}
+	assertColumns(t, pool, "oauth_accounts", expected)
+}
+
+func TestSchema_OAuthAccounts_UniqueConstraint(t *testing.T) {
+	pool := schemaPool(t)
+	defer pool.Close()
+	ctx := context.Background()
+
+	var userID string
+	if err := pool.QueryRow(ctx,
+		"INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id",
+		"oauth-unique@example.com", "hash",
+	).Scan(&userID); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	t.Cleanup(func() { pool.Exec(ctx, "DELETE FROM users WHERE id=$1", userID) }) //nolint:errcheck
+
+	_, err := pool.Exec(ctx,
+		"INSERT INTO oauth_accounts (user_id, provider, provider_uid, email) VALUES ($1, $2, $3, $4)",
+		userID, "google", "uid-001", "oauth-unique@example.com",
+	)
+	if err != nil {
+		t.Fatalf("first insert: %v", err)
+	}
+	_, err = pool.Exec(ctx,
+		"INSERT INTO oauth_accounts (user_id, provider, provider_uid, email) VALUES ($1, $2, $3, $4)",
+		userID, "google", "uid-001", "oauth-unique@example.com",
+	)
+	assertPgError(t, err, "23505", "expected unique violation on (provider, provider_uid)")
+}
+
+func TestSchema_OAuthAccounts_CascadeDeleteOnUser(t *testing.T) {
+	pool := schemaPool(t)
+	defer pool.Close()
+	ctx := context.Background()
+
+	var userID string
+	if err := pool.QueryRow(ctx,
+		"INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id",
+		"oauth-cascade@example.com", "hash",
+	).Scan(&userID); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+
+	var accountID string
+	if err := pool.QueryRow(ctx,
+		"INSERT INTO oauth_accounts (user_id, provider, provider_uid, email) VALUES ($1, $2, $3, $4) RETURNING id",
+		userID, "github", "gh-001", "oauth-cascade@example.com",
+	).Scan(&accountID); err != nil {
+		t.Fatalf("insert oauth_account: %v", err)
+	}
+
+	if _, err := pool.Exec(ctx, "DELETE FROM users WHERE id=$1", userID); err != nil {
+		t.Fatalf("delete user: %v", err)
+	}
+
+	var count int
+	pool.QueryRow(ctx, "SELECT COUNT(*) FROM oauth_accounts WHERE id=$1", accountID).Scan(&count) //nolint:errcheck
+	if count != 0 {
+		t.Error("expected oauth_account to be cascade-deleted with user")
+	}
+}
+
+func TestSchema_OAuthAccounts_ForeignKeyConstraint(t *testing.T) {
+	pool := schemaPool(t)
+	defer pool.Close()
+
+	_, err := pool.Exec(context.Background(),
+		"INSERT INTO oauth_accounts (user_id, provider, provider_uid, email) VALUES ($1, $2, $3, $4)",
+		"00000000-0000-0000-0000-000000000000", "google", "uid-fk", "fk@example.com",
+	)
+	assertPgError(t, err, "23503", "expected FK violation on oauth_accounts.user_id")
 }
 
 // assertColumns checks that all expected columns exist on the given table.

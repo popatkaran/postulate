@@ -14,12 +14,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/popatkaran/postulate/api/internal/auth"
 	"github.com/popatkaran/postulate/api/internal/config"
 	"github.com/popatkaran/postulate/api/internal/database"
 	"github.com/popatkaran/postulate/api/internal/handler"
 	"github.com/popatkaran/postulate/api/internal/health"
 	applogger "github.com/popatkaran/postulate/api/internal/logger"
 	apimigrate "github.com/popatkaran/postulate/api/internal/migrate"
+	"github.com/popatkaran/postulate/api/internal/repository/postgres"
 	"github.com/popatkaran/postulate/api/internal/router"
 	"github.com/popatkaran/postulate/api/internal/server"
 	"github.com/popatkaran/postulate/api/internal/startup"
@@ -98,15 +100,46 @@ func main() {
 	aggregator.Register(&health.ServerContributor{})
 	aggregator.Register(health.NewDatabaseContributor(pool))
 
+	// Auth — OAuth providers, user resolver, token issuer.
+	baseURL := cfg.Auth.BaseURL
+	if baseURL == "" {
+		baseURL = "http://localhost:8080"
+	}
+	auth.RegisterProviders(cfg.Auth.GoogleClientID, cfg.Auth.GoogleClientSecret, cfg.Auth.GitHubClientID, cfg.Auth.GitHubClientSecret, baseURL)
+	userRepo := postgres.NewUserRepo(pool)
+	oauthRepo := postgres.NewOAuthAccountRepo(pool)
+	refreshRepo := postgres.NewRefreshTokenRepo(pool)
+	transactor := postgres.NewTransactor(pool)
+
+	// Bootstrap configuration — determine dev fallback eligibility and emit WARN
+	// when running in production without an explicit bootstrap admin email.
+	isProduction := cfg.Server.Environment == "production"
+	bootstrapCfg := auth.BootstrapConfig{
+		AdminEmail:         cfg.Auth.BootstrapAdminEmail,
+		DevFallbackEnabled: !isProduction || cfg.Auth.BootstrapAdminEmail != "",
+	}
+	if isProduction && cfg.Auth.BootstrapAdminEmail == "" {
+		logger.Warn("POSTULATE_BOOTSTRAP_ADMIN_EMAIL is not set in production; " +
+			"dev fallback is disabled — no user will receive platform_admin automatically")
+	}
+
+	resolver := auth.NewUserResolver(userRepo, oauthRepo, transactor, bootstrapCfg)
+	issuer := auth.NewTokenIssuer(cfg.Auth.JWTSecret, refreshRepo, userRepo)
+	stateStore := auth.NewStateStore()
+	oauthHandler := handler.NewOAuthHandler(stateStore, resolver, issuer, logger)
+	tokenHandler := handler.NewTokenHandler(issuer, logger)
+
 	// Handlers.
 	handlers := router.Handlers{
 		Health:  handler.NewHealthHandler(aggregator),
 		Ready:   readyHandler,
 		Live:    &handler.LiveHandler{},
 		Version: handler.NewVersionHandler(handler.DefaultBuildInfo(), cfg.Server.Environment),
+		OAuth:   oauthHandler,
+		Token:   tokenHandler,
 	}
 
-	r := router.New(logger, metrics, handlers)
+	r := router.New(logger, metrics, []byte(cfg.Auth.JWTSecret), handlers)
 	srv := server.New(cfg.Server, r, logger)
 
 	// Signal context — cancelled on SIGTERM or SIGINT.
